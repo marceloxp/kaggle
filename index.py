@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 from PIL import Image, ImageFilter
+import matplotlib.pyplot as plt
 from diffusers import (AutoPipelineForImage2Image, StableDiffusionControlNetPipeline,
                        ControlNetModel)
 import torch
@@ -167,6 +168,17 @@ def run_lcm_or_sdxl():
 
     # Save the resulting image as output.png
     cv.imwrite("output.png", result_image)
+
+    image = cv2.imread('output.png')
+
+    # Converter de BGR para RGB (matplotlib usa RGB)
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Exibir a imagem
+    plt.imshow(image_rgb)
+    plt.axis('off')  # Desativar os eixos
+    plt.show()
+
 
 ###
 ### RUN SCRIPT
