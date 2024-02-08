@@ -172,7 +172,7 @@ def run_lcm_or_sdxl():
     image = cv.imread('output.png')
 
     # Converter de BGR para RGB (matplotlib usa RGB)
-    image_rgb = cv.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
 
     # Exibir a imagem
     plt.imshow(image_rgb)
