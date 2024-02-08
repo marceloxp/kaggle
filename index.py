@@ -2,8 +2,7 @@ import cv2 as cv
 import numpy as np
 from PIL import Image, ImageFilter
 import matplotlib.pyplot as plt
-from diffusers import (AutoPipelineForImage2Image, StableDiffusionControlNetPipeline,
-                       ControlNetModel)
+from diffusers import (AutoPipelineForImage2Image, StableDiffusionControlNetPipeline, ControlNetModel)
 import torch
 import os
 
@@ -29,16 +28,10 @@ def choose_device(torch_device = None):
     return torch_device, torch_dtype
 
 #################
-################# CONSTANTS
+# CONSTANTS
 #################
 
-# DEFAULT_PROMPT                = "portrait of adult pikachu monster, in the style of pixar movie, pikachu face, pokemon" #van gogh in the style of van gogh"
-# DEFAULT_PROMPT                = "pikachu, pokemon, wizard hat, style of pixar movie, Disney, 8k" #van gogh in the style of van gogh"
-DEFAULT_PROMPT                = "portrait of a minion, wearing goggles, yellow skin, wearing a beanie, despicable me movie, in the style of pixar movie" #van gogh in the style of van gogh"
-# DEFAULT_PROMPT                = "portrait of a indiana jones, harrison ford film"
-# DEFAULT_PROMPT                =  "van gogh in the style of van gogh"
-# DEFAULT_PROMPT                =  "beautiful and cute angry crying success kid wearing beanie"
-
+DEFAULT_PROMPT                =  "a beautiful woman, floral bikini"
 MODEL                         = "lcm" #"lcm" # or "sdxlturbo"
 SDXLTURBO_MODEL_LOCATION      = 'models/sdxl-turbo'
 LCM_MODEL_LOCATION            = 'SimianLuo/LCM_Dreamshaper_v7'
@@ -51,8 +44,8 @@ CONDITIONING_SCALE            = .7 # .5 works well too
 GUIDANCE_START                = 0.
 GUIDANCE_END                  = 1.
 RANDOM_SEED                   = 21
-HEIGHT                        = 384 #512 #384 #512
-WIDTH                         = 384 #512 #384 #512
+WIDTH                         = 512 #512 #384 #512
+HEIGHT                        = 768 #512 #384 #512
 
 def prepare_seed():
     generator = torch.manual_seed(RANDOM_SEED)
@@ -76,29 +69,14 @@ def process_lcm(image, lower_threshold = 100, upper_threshold = 100, aperture=3)
     image = np.repeat(image[:, :, np.newaxis], 3, axis=2)
     return image
 
-def process_sdxlturbo(image):
-    return image
+def prepare_lcm_controlnet_pipeline():
 
-def prepare_lcm_controlnet_or_sdxlturbo_pipeline():
-
-    if MODEL=="lcm":
-
-        controlnet = ControlNetModel.from_pretrained(CONTROLNET_CANNY_LOCATION, torch_dtype=TORCH_DTYPE, use_safetensors=True)
-        print ("controlnet")
-    
-        pipeline = StableDiffusionControlNetPipeline.from_pretrained(LCM_MODEL_LOCATION,\
-                                                        controlnet=controlnet, 
-                                                        # unet=unet,\
-                                                        torch_dtype=TORCH_DTYPE, safety_checker=None).\
-                                                    to(TORCH_DEVICE)
-        print ("pipeline")
-
-    elif MODEL=="sdxlturbo":
-
-        pipeline = AutoPipelineForImage2Image.from_pretrained(
-                    SDXLTURBO_MODEL_LOCATION, torch_dtype=TORCH_DTYPE,
-                    safety_checker=None).to(TORCH_DEVICE)
-        
+    controlnet = ControlNetModel.from_pretrained(CONTROLNET_CANNY_LOCATION, torch_dtype=TORCH_DTYPE, use_safetensors=True)
+    pipeline = StableDiffusionControlNetPipeline.from_pretrained(LCM_MODEL_LOCATION,\
+                                                    controlnet=controlnet, 
+                                                    # unet=unet,\
+                                                    torch_dtype=TORCH_DTYPE, safety_checker=None).\
+                                                to(TORCH_DEVICE)
     return pipeline
 
 def run_lcm(pipeline, ref_image):
@@ -118,47 +96,13 @@ def run_lcm(pipeline, ref_image):
 
     return gen_image
 
-def run_sdxlturbo(pipeline,ref_image):
-
-    generator = prepare_seed()
-    gen_image = pipeline(prompt                        = DEFAULT_PROMPT,
-                         num_inference_steps           = INFERENCE_STEPS, 
-                         guidance_scale                = 0.0 ,
-                         width                         = WIDTH, 
-                         height                        = HEIGHT, 
-                         generator                     = generator,
-                         image                         = ref_image, 
-                         strength                      = DEFAULT_NOISE_STRENGTH, 
-                        ).images[0]
-                        
-    return gen_image
-
 def run_lcm_or_sdxl():
-
-    ###
-    ### PREPARE MODELS
-    ###
-
-    pipeline = prepare_lcm_controlnet_or_sdxlturbo_pipeline()
-
-    processor = process_lcm if MODEL == "lcm" else process_sdxlturbo
-
-    run_model = run_lcm if MODEL == "lcm" else run_sdxlturbo
-
-    ###
-    ### LOAD IMAGE
-    ###
+    pipeline = prepare_lcm_controlnet_pipeline()
+    processor = process_lcm
+    run_model = run_lcm
 
     # Load the image
     image = cv.imread('image.png')
-
-    ###
-    ### PROCESS IMAGE
-    ###
-
-    # Assuming WIDTH, HEIGHT are defined somewhere in your code
-    center_x = (image.shape[1] - WIDTH) // 2
-    center_y = (image.shape[0] - HEIGHT) // 2
 
     numpy_image = processor(image)
     pil_image = convert_numpy_image_to_pil_image(numpy_image)
@@ -180,10 +124,5 @@ def run_lcm_or_sdxl():
     plt.show()
 
 
-###
 ### RUN SCRIPT
-###
-
 run_lcm_or_sdxl()
-
-
