@@ -165,16 +165,8 @@ def run_lcm_or_sdxl():
 
     result_image = cv.cvtColor(np.array(pil_image), cv.COLOR_RGB2BGR)
 
-    # Display the resulting frame
-    cv.imshow("output", result_image)
-
-    # Wait for 'q' key to close the window
-    while cv.waitKey(0) & 0xFF != ord('q'):
-        pass
-
-    # Release the webcam and close all windows
-    cap.release()
-    cv.destroyAllWindows()
+    # Save the resulting image as output.png
+    cv.imwrite("output.png", result_image)
 
 ###
 ### RUN SCRIPT
