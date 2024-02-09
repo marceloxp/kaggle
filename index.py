@@ -2,44 +2,21 @@ import cv2 as cv
 import numpy as np
 from PIL import Image, ImageFilter
 import matplotlib.pyplot as plt
-from diffusers import (AutoPipelineForImage2Image, StableDiffusionControlNetPipeline, ControlNetModel)
+from diffusers import (StableDiffusionControlNetPipeline, ControlNetModel)
 import torch
 import os
-
-def choose_device(torch_device = None):
-    print('...Is CUDA available in your computer?',\
-          '\n... Yes!' if torch.cuda.is_available() else "\n... No D': ")
-    print('...Is MPS available in your computer?',\
-          '\n... Yes' if torch.backends.mps.is_available() else "\n... No D':")
-
-    if torch_device is None:
-        if torch.cuda.is_available():
-            torch_device = "cuda"
-            torch_dtype = torch.float16
-        elif torch.backends.mps.is_available() and not torch.cuda.is_available():
-            torch_device = "mps"
-            torch_dtype = torch.float16
-        else:
-            torch_device = "cpu"
-            torch_dtype = torch.float32
-
-    print("......using ", torch_device)
-
-    return torch_device, torch_dtype
 
 #################
 # CONSTANTS
 #################
 
-DEFAULT_PROMPT                =  "a beautiful woman, floral bikini"
-MODEL                         = "lcm" #"lcm" # or "sdxlturbo"
-SDXLTURBO_MODEL_LOCATION      = 'models/sdxl-turbo'
+DEFAULT_PROMPT                = "a beautiful woman, bikini, beach"
+MODEL                         = "lcm"
 LCM_MODEL_LOCATION            = 'SimianLuo/LCM_Dreamshaper_v7'
 CONTROLNET_CANNY_LOCATION     = "lllyasviel/control_v11p_sd15_canny" 
-TORCH_DEVICE, TORCH_DTYPE     = choose_device()  
+TORCH_DEVICE, TORCH_DTYPE     = "cuda", torch.float16
 GUIDANCE_SCALE                = 3 # 0 for sdxl turbo (hardcoded already)
 INFERENCE_STEPS               = 4 #4 for lcm (high quality) #2 for turbo
-DEFAULT_NOISE_STRENGTH        = 0.7 # 0.5 works well too
 CONDITIONING_SCALE            = .7 # .5 works well too
 GUIDANCE_START                = 0.
 GUIDANCE_END                  = 1.
@@ -54,15 +31,6 @@ def prepare_seed():
 def convert_numpy_image_to_pil_image(image):
     return Image.fromarray(cv.cvtColor(image, cv.COLOR_BGR2RGB))
 
-def get_result_and_mask(frame, center_x, center_y, width, height):
-    "just gets full frame and the mask for cutout"
-    
-    mask = np.zeros_like(frame)
-    mask[center_y:center_y+height, center_x:center_x+width, :] = 255
-    cutout = frame[center_y:center_y+height, center_x:center_x+width, :]
-
-    return frame, cutout
-
 def process_lcm(image, lower_threshold = 100, upper_threshold = 100, aperture=3): 
     image = np.array(image)
     image = cv.Canny(image, lower_threshold, upper_threshold,apertureSize=aperture)
@@ -70,7 +38,6 @@ def process_lcm(image, lower_threshold = 100, upper_threshold = 100, aperture=3)
     return image
 
 def prepare_lcm_controlnet_pipeline():
-
     controlnet = ControlNetModel.from_pretrained(CONTROLNET_CANNY_LOCATION, torch_dtype=TORCH_DTYPE, use_safetensors=True)
     pipeline = StableDiffusionControlNetPipeline.from_pretrained(LCM_MODEL_LOCATION,\
                                                     controlnet=controlnet, 
@@ -80,7 +47,6 @@ def prepare_lcm_controlnet_pipeline():
     return pipeline
 
 def run_lcm(pipeline, ref_image):
-
     generator = prepare_seed()
     gen_image = pipeline(prompt                        = DEFAULT_PROMPT,
                          num_inference_steps           = INFERENCE_STEPS, 
@@ -122,7 +88,6 @@ def run_lcm_or_sdxl():
     plt.imshow(image_rgb)
     plt.axis('off')  # Desativar os eixos
     plt.show()
-
 
 ### RUN SCRIPT
 run_lcm_or_sdxl()
